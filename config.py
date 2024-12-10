@@ -2,6 +2,12 @@ import json
 import os
 from pathlib import Path
 
+
+
+#Params to tune:
+NUM_MP_STEPS = 10  # Message passing steps
+INPUT_SEQUENCE_LENGTH = 6  # Number of input positions (5 velocities)
+
 # Dataset name
 DATASET_NAME = "Water100"
 
@@ -9,7 +15,12 @@ DATASET_NAME = "Water100"
 BASE_DIR = Path("/data/rye/5835/utils_final")  # Adjust as needed
 DATA_DIR = Path("/data/rye/5835/datasets") / f"{DATASET_NAME}_hdf5"
 METADATA_PATH = DATA_DIR / "metadata.json"
-OUT_DIR = Path("/data/rye/5835/models") / DATASET_NAME
+OUT_DIR = Path("/data/rye/5835/models") / f"{DATASET_NAME}_mp{NUM_MP_STEPS}_sl{INPUT_SEQUENCE_LENGTH}"
+
+
+
+
+
 
 # Load metadata
 with open(METADATA_PATH, 'r') as f:
@@ -33,9 +44,6 @@ NOISE_STD = 3e-4
 LATENT_DIM = 128
 NUM_LAYERS = 3
 
-#Params to tune:
-NUM_MP_STEPS = 10  # Message passing steps
-INPUT_SEQUENCE_LENGTH = 6  # Number of input positions (5 velocities)
 
 # Node features
 PARTICLE_TYPE_EMBEDDING_DIM = 9
