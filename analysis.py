@@ -36,51 +36,55 @@ def analyze(model_dir, model_prefix):
 	
 	results = []
 	
+	
+	on_num = 0
 	# Iterate through model folders 
-	for file in sorted(os.listdir(model_dir)):
-		if file.startswith(model_prefix) and file.endswith(".pth"):
-			# Extract epoch number
-			
-			
-			feature_dim = (config.DIM + (sequence_length-1)*config.DIM + 1 + 2*config.DIM)
-			
-			epoch = int(file.split("_")[-1].split(".")[0])
-			model_path = os.path.join(model_dir, file)
-			
-			# Load the model
-			model_data = torch.load(model_path, map_location=device)
-			
-			model = OurModel(in_dim=feature_dim, 
-						   latent_dim=config.LATENT_DIM, 
-						   k=message_passing_steps, 
-						   connectivity_radius=config.CONNECTIVITY_RADIUS)
-			
-			model.load_state_dict(model_data['model_state_dict'])
-			model.to(device)  # Move model to GPU
-			model.eval()  # Set to evaluation mode
-			
-			# Calculate MSE loss on the dataset
-			total_loss = 0.0
-			total_samples = 0
-			
-			with torch.no_grad():
-				for batch_idx, (positions, node_features, accelerations, padding_masks) in tqdm(enumerate(dataloader)):
-					# Move all tensors to GPU
-					positions = positions.to(device)
-					node_features = node_features.to(device) 
-					accelerations = accelerations.to(device)
-					padding_masks = padding_masks.to(device)
-					
-					outputs = model(node_features, positions)
-					loss = loss_fn(outputs[padding_masks], accelerations[padding_masks])
-					total_loss += loss.item() * positions.size(0)
-					total_samples += positions.size(0)
-					
-			mse_loss = total_loss / total_samples
-			print(f"Epoch {epoch}: MSE Loss = {mse_loss}")
-			
-			# Record the result
-			results.append({"epoch": epoch, "mse_loss": mse_loss})
+	for file in sorted([ele for ele in os.listdir(model_dir) if ele.find('epoch')!=-1], key = lambda x:int(x.split('_')[-1].split(".")[0])):
+		on_num += 1
+		if on_num%5 == 0 or on_num in [1,50]:
+			print("On num is: ", on_num)
+			if file.startswith(model_prefix) and file.endswith(".pth"):
+				feature_dim = (config.DIM + (sequence_length-1)*config.DIM + 1 + 2*config.DIM)
+
+				epoch = int(file.split("_")[-1].split(".")[0])
+				print("On epoch:", epoch)
+				
+				model_path = os.path.join(model_dir, file)
+
+				# Load the model
+				model_data = torch.load(model_path, map_location=device)
+
+				model = OurModel(in_dim=feature_dim, 
+							   latent_dim=config.LATENT_DIM, 
+							   k=message_passing_steps, 
+							   connectivity_radius=config.CONNECTIVITY_RADIUS)
+
+				model.load_state_dict(model_data['model_state_dict'])
+				model.to(device)  # Move model to GPU
+				model.eval()  # Set to evaluation mode
+
+				# Calculate MSE loss on the dataset
+				total_loss = 0.0
+				total_samples = 0
+
+				with torch.no_grad():
+					for batch_idx, (positions, node_features, accelerations, padding_masks) in tqdm(enumerate(dataloader)):
+						# Move all tensors to GPU
+						positions = positions.to(device)
+						node_features = node_features.to(device) 
+						accelerations = accelerations.to(device)
+						padding_masks = padding_masks.to(device)
+
+						outputs = model(node_features, positions)
+						loss = loss_fn(outputs[padding_masks], accelerations[padding_masks])
+						total_loss += loss.item() * positions.size(0)
+						total_samples += positions.size(0)
+
+				mse_loss = total_loss / total_samples
+				print(f"Epoch {epoch}: MSE Loss = {mse_loss}")
+
+				# Record the result
+				results.append({"epoch": epoch, "mse_loss": mse_loss})
 			
 	# Save results to a CSV file
 	results_df = pd.DataFrame(results)
